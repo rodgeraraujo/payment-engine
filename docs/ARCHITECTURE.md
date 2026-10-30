@@ -2,19 +2,7 @@
 
 ## Layers
 
-```
-            main.rs  (CLI: args, file, stdout, exit codes)
-               |
-          processor.rs  (CSV stream in -> Engine -> CSV out; logs skips)
-             /      \
-      model.rs      engine.rs  (pure business rules, no I/O)
- (RawRecord ->            |
-  Transaction)        account.rs  (balances + locked, invariants)
-        \                 |
-         +------ amount.rs (Decimal newtype, checked ops)
-                          |
-                      error.rs (typed errors, shared)
-```
+<img src="images/payments_engine_architecture.svg"  width=600/>
 
 Dependencies only point downwards. The engine has no I/O, so it can be tested
 in memory and reused in a server unchanged.
@@ -41,7 +29,7 @@ Normal --dispute--> Disputed --resolve----> Normal
 ```
 
 | Operation | available | held | total |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | deposit | +a | | +a |
 | withdrawal (if available >= a) | -a | | -a |
 | dispute | -a | +a | = |
