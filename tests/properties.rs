@@ -30,7 +30,7 @@ proptest! {
             let _ = engine.apply(op); // rejections are fine; panics are not
         }
         for (_, a) in engine.accounts_sorted() {
-            prop_assert_eq!(a.total(), a.available().checked_add(a.held()).unwrap());
+            prop_assert_eq!(a.total(), a.available().checked_add(a.held()));
         }
     }
 
