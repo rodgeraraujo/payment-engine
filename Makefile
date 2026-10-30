@@ -1,3 +1,10 @@
+UNAME := $(shell uname)
+ifeq ($(UNAME), Darwin)
+	TIME := /usr/bin/time -l
+else
+	TIME := /usr/bin/time -v
+endif
+
 .PHONY: build test lint run docker bigtest
 
 build:
@@ -19,4 +26,4 @@ docker:
 
 bigtest: build
 	python3 scripts/gen_large.py 5000000 > /tmp/big.csv
-	/usr/bin/time -v ./target/release/payments-engine /tmp/big.csv > /dev/null
+	$(TIME) ./target/release/payments-engine /tmp/big.csv > /dev/null
