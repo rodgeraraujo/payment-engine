@@ -41,8 +41,23 @@ fn stdout_contains_only_csv_diagnostics_go_to_stderr() {
         .assert()
         .success();
     let out = assert.get_output();
+    let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(!out.stderr.is_empty());
+    assert!(stderr.contains("summary:"));
     assert!(String::from_utf8_lossy(&out.stdout).starts_with("client,available,held,total,locked"));
+}
+
+#[test]
+fn stderr_summary_reports_applied_and_skipped_counts() {
+    let assert = Command::cargo_bin("payments-engine")
+        .unwrap()
+        .arg("tests/fixtures/malformed.csv")
+        .assert()
+        .success();
+    let out = assert.get_output();
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("summary: 2 applied, 11 skipped"));
+    assert!(stderr.contains("skipped (malformed CSV record): 2"));
 }
 
 #[test]
