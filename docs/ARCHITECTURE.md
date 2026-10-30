@@ -2,10 +2,21 @@
 
 ## Layers
 
-<img src="images/payments_engine_architecture.svg"  width=600/>
+<img src="images/payments_engine_architecture.png"  width=600/>
 
-Dependencies only point downwards. The engine has no I/O, so it can be tested
-in memory and reused in a server unchanged.
+The codebase is organized into distinct layers where dependencies strictly point inward and downward:
+
+- **`src/domain/`**: Pure business logic with zero I/O dependencies.
+  - `amount`: `Amount` newtype wrapping `rust_decimal::Decimal` with checked arithmetic.
+  - `account`: `Account` tracking client balances and invariant preservation.
+  - `engine`: `Engine` handling transactions and dispute state transitions.
+- **`src/io/`**: I/O adapters for ingestion and serialization.
+  - `model`: `RawRecord` deserialization and conversion into domain `Transaction`.
+  - `processor`: Streaming `csv::Reader` processing, aggregated error diagnostics, and CSV serialization.
+- **`src/error.rs`**: Typed domain, parsing, and engine errors shared across layers.
+- **`src/main.rs`**: Entry point handling CLI flags, buffered files, and exit codes.
+
+The engine has no I/O, so it can be tested in memory and reused in a server unchanged.
 
 ## Data flow
 
@@ -22,11 +33,7 @@ in memory and reused in a server unchanged.
 
 Dispute state machine (per deposit):
 
-```
-Normal --dispute--> Disputed --resolve----> Normal
-                       |
-                       +------chargeback--> ChargedBack (account locked, final)
-```
+<img src="images/dispute_state_machine.png"  width=600/>
 
 | Operation | available | held | total |
 | --- | --- | --- | --- |

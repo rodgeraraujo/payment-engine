@@ -212,12 +212,12 @@ Per-step checklist:
 
 ## 11. Submission checklist
 
-- [ ] `cargo build`, `cargo test`, `cargo fmt --check`, `cargo clippy -D warnings` all pass.
-- [ ] The spec example gives the expected output.
-- [ ] README lists assumptions, correctness approach, safety, efficiency.
-- [ ] AI usage disclosed; transcript included with the company name redacted.
-- [ ] No mention of the company, its brands or domains in code, docs or history.
-- [ ] The test PDF is not in the repo.
+- [x] `cargo build`, `cargo test`, `cargo fmt --check`, `cargo clippy -D warnings` all pass.
+- [x] The spec example gives the expected output.
+- [x] README lists assumptions, correctness approach, safety, efficiency.
+- [x] AI usage disclosed; transcript included with the company name redacted.
+- [x] No mention of the company, its brands or domains in code, docs or history.
+- [x] The test PDF is not in the repo.
 - [ ] Repo is public.
 - [ ] Link sent to the recruiter with the admin address in cc, before the deadline.
 

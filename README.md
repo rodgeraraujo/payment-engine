@@ -23,6 +23,36 @@ stdout is always clean CSV. Exit codes: `0` ok, `1` I/O failure, `2` bad usage.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): modules, data flow, state machine, scaling.
 - [docs/AI_WORKFLOW.md](docs/AI_WORKFLOW.md): how AI was used and how its output was validated, plus a requirement-to-test matrix.
 - [docs/PROMPTS.md](docs/PROMPTS.md): prompt log mapped to commits.
+- [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md): detailed improvements post-baseline, reasons, trade-offs, and verification.
+
+## Project layout
+
+```text
+payments-engine/
+├── Cargo.toml
+├── Makefile
+├── Dockerfile
+├── README.md
+├── docs/                 # Architecture, workflow, task breakdown, improvements
+├── scripts/              # Dataset generator for load and scale testing
+├── src/
+│   ├── lib.rs            # Re-exports, forbid(unsafe_code), warn(missing_docs)
+│   ├── main.rs           # CLI argument parsing, buffered I/O, exit codes
+│   ├── error.rs          # Strongly-typed error enums
+│   ├── domain/           # Pure business logic (zero I/O dependencies)
+│   │   ├── amount.rs     # Fixed-point decimal with checked arithmetic
+│   │   ├── account.rs    # Client account state and invariant checks
+│   │   └── engine.rs     # Transaction processor and dispute state machine
+│   └── io/               # Input/Output adapters
+│       ├── model.rs      # Raw CSV deserialization
+│       └── processor.rs  # Streaming reader, stderr diagnostics, CSV writer
+└── tests/
+    ├── cli.rs            # End-to-end binary execution against test fixtures
+    ├── properties.rs     # Proptest invariants (total == available + held)
+    ├── reference_model.rs# Proptest ledger replay comparison against Engine
+    ├── robustness.rs     # Fuzzing and hostile parser tests
+    └── fixtures/         # Spec and edge-case CSV inputs with expected outputs
+```
 
 ## Assumptions (where the spec is silent)
 
@@ -56,10 +86,24 @@ Tests (`cargo test`): unit tests for amount parsing and every engine rule, end-t
 
 ## Efficiency
 
-- Input is streamed row by row (`csv::Reader`), never loaded whole.
-- Memory grows only with the number of **distinct deposits** (needed for later disputes): one small map entry each. Measured on a generated 5M-row file (134 MB): about 5.6 s and about 160 MB peak RSS (`make bigtest`).
+- Input is streamed row by row (`csv::Reader`) through a 128 KB buffered reader, reducing I/O syscall overhead (~13% time reduction on large inputs).
+- Memory grows only with the number of **distinct deposits** (needed for later disputes): one small map entry each. Measured on a generated 5M-row file (134 MB): ~4.9 s and ~160 MB peak RSS (`make bigtest`).
 - Withdrawal ids are not stored. The trade-off is that duplicate withdrawal ids cannot be detected; storing them would cost up to ~4 billion set entries in the worst case.
 - Scaling to many concurrent streams: `processor::process` is generic over `Read`, so it works on a socket. See ARCHITECTURE.md for the sharding approach.
+
+## Improvements
+
+Detailed improvements made after the initial implementation are documented in [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md):
+- **Correctness**: Explicit overflow detection on `Account::total()` (`I1`), full reference-model property test (`I6`), direct in-memory stream testing with format edge cases (`I5`).
+- **Safety & Robustness**: `#![forbid(unsafe_code)]` and `#![warn(missing_docs)]` compiler enforcement (`I4`), parser fuzz testing against arbitrary byte streams (`I7`), centralized locked account policy (`I9`), and CI dependency vulnerability scanning (`I10`).
+- **Efficiency & Observability**: Skip counters aggregated by error category with execution summary on stderr (`I2`, `I3`), 128KB buffered input reducing I/O syscalls (`I8`).
+- **Architecture**: Clear layer separation (`src/domain/` with zero I/O imports, `src/io/` for CSV adapters, dedicated `tests/` suites) (`I12`).
+
+## Limitations
+
+1. **Duplicate withdrawal IDs**: To keep memory bounded only by active deposits, withdrawal transaction IDs are not indexed. If an external client retries or duplicates a withdrawal transaction ID with different amounts, the engine processes it based on available balance rather than rejecting it as a duplicate ID.
+2. **Unbounded deposit growth**: As long as deposits may be disputed in the future, every deposit transaction must remain indexed in memory (`HashMap<u32, StoredDeposit>`). In a production system processing billions of transactions, this deposit index would be offloaded to an embedded persistent key-value store (e.g. RocksDB) or partitioned across distributed ledger shards.
+3. **Single stream execution**: The current binary processes a single sequential CSV file on a single thread. While execution handles ~1.6M rows/second, concurrent multi-tenant ingestion would require sharding by client ID across worker tasks as detailed in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## AI usage
 

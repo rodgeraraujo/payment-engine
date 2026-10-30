@@ -29,12 +29,16 @@ owns the final code. The prompt log is in [PROMPTS.md](PROMPTS.md).
 | Requirement | Where | Test |
 | --- | --- | --- |
 | CLI `cargo run -- file > out` | `main.rs` | `tests/cli.rs::basic_example_from_the_spec` |
-| Whitespace and 4-decimal precision accepted | `processor.rs`, `amount.rs` | `malformed.csv` fixture, `amount::tests` |
-| Withdrawal fails without funds | `account.rs` | `insufficient_funds_leaves_balance_unchanged` |
-| Dispute holds funds, total unchanged | `engine.rs` | `dispute_then_resolve` |
-| Unknown tx ignored | `engine.rs` | `invalid_references_are_rejected` |
-| Resolve needs an active dispute | `engine.rs` | `invalid_references_are_rejected` |
-| Chargeback reduces held and total, locks | `engine.rs` | `chargeback_freezes_and_blocks_further_activity` |
-| total = available + held | `account.rs` | `properties.rs` |
-| Streaming, large input | `processor.rs` | `make bigtest` |
-| Errors handled, no panics | everywhere | `malformed_rows_are_skipped_not_fatal`, property tests |
+| Whitespace and 4-decimal precision accepted | `io/processor.rs`, `domain/amount.rs` | `malformed.csv` fixture, `amount::tests` |
+| Withdrawal fails without funds | `domain/account.rs` | `insufficient_funds_leaves_balance_unchanged` |
+| Dispute holds funds, total unchanged | `domain/engine.rs` | `dispute_then_resolve` |
+| Unknown tx ignored | `domain/engine.rs` | `invalid_references_are_rejected` |
+| Resolve needs an active dispute | `domain/engine.rs` | `invalid_references_are_rejected` |
+| Chargeback reduces held and total, locks | `domain/engine.rs` | `chargeback_freezes_and_blocks_further_activity` |
+| total = available + held (checked, no silent overflow) | `domain/account.rs` | `properties.rs`, `account::tests::total_returns_none_on_overflow` |
+| Engine behavior matches reference replay ledger | `domain/engine.rs` | `tests/reference_model.rs` |
+| In-memory stream processing & formatting edge cases | `io/processor.rs` | `processor::tests::process_works_with_in_memory_slice`, `output_edge_cases_formatting` |
+| Robustness: no panics on arbitrary/hostile bytes | `io/processor.rs` | `tests/robustness.rs` |
+| Diagnostic summary on stderr, pure CSV on stdout | `main.rs`, `io/processor.rs` | `tests/cli.rs::stderr_summary_reports_applied_and_skipped_counts` |
+| Streaming, large input | `io/processor.rs` | `make bigtest` |
+| Errors handled, no panics | everywhere | `malformed_rows_are_skipped_not_fatal`, property & robustness tests |
