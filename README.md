@@ -18,6 +18,10 @@ docker run --rm -v "$PWD:/data:ro" payments-engine /data/transactions.csv > acco
 Diagnostics (skipped rows, rejected transactions) go to **stderr** only, so
 stdout is always clean CSV. Exit codes: `0` ok, `1` I/O failure, `2` bad usage.
 
+## Architecture
+
+<img src="docs/images/architecture.png" width="800">
+
 ## Documentation
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): modules, data flow, state machine, scaling.
